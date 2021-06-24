@@ -1,19 +1,23 @@
 package lexicalAnalyzer;
 
+import Exceptions.NotANumberException;
+import TabelaDeSimbolos.TabelaDeSimbolos;
+
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Hashtable;
 
 public class Lexer {
     public int line;
     private char ch;
     private FileReader fr;
-    private Hashtable<String, Word> words;
+    private TabelaDeSimbolos words;
 
     public Lexer(String fileName) throws FileNotFoundException {
         this.ch = ' ';
         this.line = 1;
+
+        // Le o arquivo
         try {
             this.fr = new FileReader(fileName);
         }catch (FileNotFoundException e){
@@ -21,7 +25,7 @@ public class Lexer {
             throw e;
         }
 
-        this.words = new Hashtable<>();
+        this.words = new TabelaDeSimbolos(null);
 
         //insert reserved words in HashTable
         words.put("class", new Word("class", Tag.CLASS));
@@ -51,5 +55,82 @@ public class Lexer {
         return this.ch == ch;
     }
 
+    public Token scan() throws IOException, NotANumberException {
+        //Ignora os delimitadores na entrada
+        for (;; readch()) {
+            if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\b'){
+                continue;
+            }
+            else if (ch == '\n'){
+                line++;
+            }
+            else break;
+        }
+
+        switch(ch){
+            case '&':
+                if (readch('&')) return Word.AND;
+                else return new Token('&');
+            case '|':
+                if (readch('|')) return Word.OR;
+                else return new Token('|');
+            case '=':
+                if (readch('=')) return Word.EQ;
+                else return new Token('=');
+            case '<':
+                if (readch('=')) return Word.LE;
+                else return new Token('<');
+            case '>':
+                if (readch('=')) return Word.GE;
+                else return new Token('>');
+            case '!':
+                if (readch('=')) return Word.NEQ;
+                else return new Token('>');
+        }
+
+        //Números
+        if (Character.isDigit(ch)){
+            double value = 0;
+            double aux = -1;
+            do{
+                value = 10*value + Character.digit(ch,10);
+                readch();
+            }while(Character.isDigit(ch));
+            if ( ch == '.'){
+                readch();
+                while ( Character.isDigit(ch) ){
+                    value = value + Character.digit(ch,10)*Math.pow(10, aux);
+                    readch();
+                    aux --;
+                }
+            }
+            if ( ch != ' ' || ch != ';' || ch != '\n' || ch != '\t' || ch != '\r' || ch != '\b'){
+                String msg = String.format("ERRO LEXICO: \nFormato de número inválido, com a presença do caractere %c na linha %d", ch, line);
+                throw new NotANumberException(msg);
+            }
+            return new Number(value);
+        }
+
+        //Identificadores
+        if (Character.isLetter(ch)){
+            StringBuffer sb = new StringBuffer();
+            do{
+                sb.append(ch);
+                readch();
+            }while(Character.isLetterOrDigit(ch));
+            String s = sb.toString();
+            Word w = (Word)words.get(s);
+            if (w != null) {
+                return w;
+            }
+            w = new Word (s, Tag.ID);
+            words.put(s, w);
+            return w;
+        }
+        //Caracteres nao existente - cria token
+        Token t = new Token(ch);
+        ch = ' ';
+        return t;
+    }
 
 }
