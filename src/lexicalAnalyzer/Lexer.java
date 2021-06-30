@@ -1,6 +1,7 @@
 package lexicalAnalyzer;
 
 import Exceptions.NotANumberException;
+import Exceptions.WrongFormatException;
 import TabelaDeSimbolos.TabelaDeSimbolos;
 
 import java.io.FileNotFoundException;
@@ -55,7 +56,7 @@ public class Lexer {
         return this.ch == ch;
     }
 
-    public Token scan() throws IOException, NotANumberException {
+    public Token scan() throws IOException, NotANumberException, WrongFormatException {
         //Ignora os delimitadores na entrada
         for (;; readch()) {
             if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\b'){
@@ -65,6 +66,29 @@ public class Lexer {
                 line++;
             }
             else break;
+        }
+
+        // Comentarios
+        if (ch == '/'){
+            if (readch('/')){
+                do{
+                    readch();
+                }while( ch != '\n');
+            }
+            else if (readch('*')) {
+                do{
+                    readch();
+                    if (ch == '*'){
+                        if (readch('/')){
+                            break;
+                        }
+                    }
+                    if (ch == -1){
+                        String msg = String.format("ERRO NO COMENTÁRIO: \nFormato inválido, comentario iniciado na linha %d não foi fechado", line);
+                        throw new WrongFormatException(msg);
+                    }
+                }while( true );
+            }
         }
 
         switch(ch){
@@ -104,7 +128,7 @@ public class Lexer {
                     aux --;
                 }
             }
-            if ( ch != ' ' || ch != ';' || ch != '\n' || ch != '\t' || ch != '\r' || ch != '\b'){
+            if ( Character.isLetter(ch)){
                 String msg = String.format("ERRO LEXICO: \nFormato de número inválido, com a presença do caractere %c na linha %d", ch, line);
                 throw new NotANumberException(msg);
             }
@@ -117,7 +141,7 @@ public class Lexer {
             do{
                 sb.append(ch);
                 readch();
-            }while(Character.isLetterOrDigit(ch));
+            }while(Character.isLetterOrDigit(ch) || ch == '_');
             String s = sb.toString();
             Word w = (Word)words.get(s);
             if (w != null) {
@@ -127,10 +151,19 @@ public class Lexer {
             words.put(s, w);
             return w;
         }
+
         //Caracteres nao existente - cria token
         Token t = new Token(ch);
         ch = ' ';
         return t;
+    }
+
+
+    public FileReader getFr() {
+        return fr;
+    }
+    public TabelaDeSimbolos getWords() {
+        return this.words;
     }
 
 }

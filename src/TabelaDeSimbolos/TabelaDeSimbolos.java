@@ -26,4 +26,9 @@ public class TabelaDeSimbolos {
         }
         return null; //caso Token não exista em uma das TS
     }
+
+    public Hashtable<String, Object> getTabelaDeSimbolos() {
+        return tabelaDeSimbolos;
+    }
+
 }
