@@ -27,6 +27,7 @@ public class Tag {
     public final static int AND = 273;// AND Logic - &&
 
     //OTHERS
-    public final static int NUMBER = 274;
-    public final static int ID = 275;
+    public final static int LITERAL = 274;
+    public final static int NUMBER = 275;
+    public final static int ID = 276;
 }

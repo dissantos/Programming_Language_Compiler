@@ -1,5 +1,6 @@
 package lexicalAnalyzer;
 
+import Exceptions.LiteralWrongFormatException;
 import Exceptions.NotANumberException;
 import Exceptions.WrongFormatException;
 import TabelaDeSimbolos.TabelaDeSimbolos;
@@ -56,7 +57,7 @@ public class Lexer {
         return this.ch == ch;
     }
 
-    public Token scan() throws IOException, NotANumberException, WrongFormatException {
+    public Token scan() throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         //Ignora os delimitadores na entrada
         for (;; readch()) {
             if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\b'){
@@ -75,7 +76,7 @@ public class Lexer {
                     readch();
                 }while( ch != '\n');
             }
-            else if (readch('*')) {
+            else if (ch == '*') {
                 do{
                     readch();
                     if (ch == '*'){
@@ -83,11 +84,13 @@ public class Lexer {
                             break;
                         }
                     }
-                    if (ch == -1){
-                        String msg = String.format("ERRO NO COMENTÁRIO: \nFormato inválido, comentario iniciado na linha %d não foi fechado", line);
+                    if (!this.fr.ready()){
+                        String msg = String.format("\nERRO NO COMENTÁRIO: \nFormato inválido, comentario iniciado na linha %d não foi fechado", line);
                         throw new WrongFormatException(msg);
                     }
                 }while( true );
+            } else {
+                return new Token('/');
             }
         }
 
@@ -129,7 +132,7 @@ public class Lexer {
                 }
             }
             if ( Character.isLetter(ch)){
-                String msg = String.format("ERRO LEXICO: \nFormato de número inválido, com a presença do caractere %c na linha %d", ch, line);
+                String msg = String.format("\nERRO LEXICO: \nFormato de número inválido, com a presença do caractere %c na linha %d", ch, line);
                 throw new NotANumberException(msg);
             }
             return new Number(value);
@@ -150,6 +153,27 @@ public class Lexer {
             w = new Word (s, Tag.ID);
             words.put(s, w);
             return w;
+        }
+
+        //Reconhecer literal
+        if(ch == '"'){
+            int linha_string = line;
+            StringBuffer sb = new StringBuffer();
+            do{
+                if(ch == '\n') {
+                    break;
+                }
+                sb.append(ch);
+            }while (!readch('"'));
+
+            if(ch == '\n'){
+                String msg = String.format("\nERRO LEXICO: \nFormato de string inválido. String iniciada na linha %d, nao foi fechada com \"", line);
+                throw new LiteralWrongFormatException(msg);
+            }else{
+                sb.append(ch);
+                String s = sb.toString();
+                return new Literal(Tag.LITERAL, s);
+            }
         }
 
         //Caracteres nao existente - cria token

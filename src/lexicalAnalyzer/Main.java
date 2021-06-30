@@ -1,5 +1,6 @@
 package lexicalAnalyzer;
 
+import Exceptions.LiteralWrongFormatException;
 import Exceptions.NotANumberException;
 import Exceptions.WrongFormatException;
 import TabelaDeSimbolos.TabelaDeSimbolos;
@@ -11,7 +12,7 @@ import java.util.Hashtable;
 import java.util.Map;
 
 public class Main {
-    public static void main(String[] args) throws IOException, NotANumberException, WrongFormatException {
+    public static void main(String[] args) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         String file = "";
         ArrayList <Token> arrayDeTokens = new ArrayList<Token>();
 
