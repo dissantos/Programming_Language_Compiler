@@ -85,7 +85,8 @@ public class Lexer {
                         }
                     }
                     if (!this.fr.ready()){
-                        String msg = String.format("\nERRO NO COMENTÁRIO: \nFormato inválido, comentario iniciado na linha %d não foi fechado", line);
+                        String msg = String.format("\nERRO NO COMENTÁRIO: \nFormato inválido, " +
+                                "comentario iniciado na linha %d não foi fechado", line);
                         throw new WrongFormatException(msg);
                     }
                 }while( true );
