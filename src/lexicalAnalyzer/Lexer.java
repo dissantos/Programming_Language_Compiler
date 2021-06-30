@@ -57,8 +57,7 @@ public class Lexer {
         return this.ch == ch;
     }
 
-    public Token scan() throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
-        //Ignora os delimitadores na entrada
+    public void ignorarDelimitadores() throws IOException {
         for (;; readch()) {
             if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\b'){
                 continue;
@@ -68,30 +67,47 @@ public class Lexer {
             }
             else break;
         }
+    }
+
+    public Token scan() throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
+        //Ignora os delimitadores na entrada
+        ignorarDelimitadores();
 
         // Comentarios
-        if (ch == '/'){
-            if (readch('/')){
-                do{
-                    readch();
-                }while( ch != '\n');
-            }
-            else if (ch == '*') {
-                do{
-                    readch();
-                    if (ch == '*'){
-                        if (readch('/')){
-                            break;
+        while (ch == '/'){
+            readch();
+            switch (ch){
+                case '/':
+                    do{
+                        readch();
+                    }while( ch != '\n');
+                    ignorarDelimitadores();
+                    break;
+                case '*':
+                    int linha_comentario = 0;
+                    while(true){
+                        if (!this.fr.ready()){
+                            String msg = String.format("\nERRO NO COMENTÁRIO: \nFormato inválido, " +
+                                    "comentario iniciado na linha %d não foi fechado", line);
+                            throw new WrongFormatException(msg);
+                        }
+
+                        readch();
+                        if(ch == '*'){
+                            readch();
+                            if(ch == '/'){
+                                readch();
+                                line += linha_comentario; //atualiza a variavel linha com as linhas utilizadas no comentario
+                                ignorarDelimitadores();
+                                break;
+                            }
+                        } else if(ch == '\n'){
+                            linha_comentario++; //quantidade de linhas usadas no comentario
                         }
                     }
-                    if (!this.fr.ready()){
-                        String msg = String.format("\nERRO NO COMENTÁRIO: \nFormato inválido, " +
-                                "comentario iniciado na linha %d não foi fechado", line);
-                        throw new WrongFormatException(msg);
-                    }
-                }while( true );
-            } else {
-                return new Token('/');
+                    break;
+                default:
+                    return new Token('/');
             }
         }
 
@@ -165,13 +181,15 @@ public class Lexer {
                     break;
                 }
                 sb.append(ch);
-            }while (!readch('"'));
+                readch();
+            }while (ch != '\"');
 
             if(ch == '\n'){
                 String msg = String.format("\nERRO LEXICO: \nFormato de string inválido. String iniciada na linha %d, nao foi fechada com \"", line);
                 throw new LiteralWrongFormatException(msg);
             }else{
                 sb.append(ch);
+                readch();
                 String s = sb.toString();
                 return new Literal(Tag.LITERAL, s);
             }

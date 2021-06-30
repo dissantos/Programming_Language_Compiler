@@ -25,6 +25,11 @@ public class Main {
         while(lex.getFr().ready()){
             arrayDeTokens.add(lex.scan());
         }
+        System.out.println("========================");
+        System.out.println("Arquivo "+file+ " compilado com sucesso!");
+        System.out.println("========================");
+
+        System.out.println("\nLista de Tokens:");
         for (Token t:arrayDeTokens){
             System.out.println(t.toString());
         }
