@@ -84,6 +84,7 @@ public class Lexer {
                     ignorarDelimitadores();
                     break;
                 case '*':
+                    StringBuffer sb = new StringBuffer();
                     int linha_comentario = 0;
                     while(true){
                         if (!this.fr.ready()){
@@ -93,14 +94,12 @@ public class Lexer {
                         }
 
                         readch();
-                        if(ch == '*'){
+                        sb.append(ch);
+                        if(sb.toString().contains("*/")){
                             readch();
-                            if(ch == '/'){
-                                readch();
-                                line += linha_comentario; //atualiza a variavel linha com as linhas utilizadas no comentario
-                                ignorarDelimitadores();
-                                break;
-                            }
+                            line += linha_comentario;
+                            ignorarDelimitadores();
+                            break;
                         } else if(ch == '\n'){
                             linha_comentario++; //quantidade de linhas usadas no comentario
                         }
