@@ -52,9 +52,9 @@ public class Lexer {
         readch();
         if (this.ch == ch){
             this.ch =  ' ';
+            return true;
         }
-
-        return this.ch == ch;
+        return false;
     }
 
     public void ignorarDelimitadores() throws IOException {
@@ -112,7 +112,9 @@ public class Lexer {
 
         switch(ch){
             case '&':
-                if (readch('&')) return Word.AND;
+                if (readch('&')){
+                    return Word.AND;
+                }
                 else return new Token('&');
             case '|':
                 if (readch('|')) return Word.OR;

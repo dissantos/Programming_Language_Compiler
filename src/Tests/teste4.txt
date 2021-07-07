@@ -2,7 +2,7 @@ init
 // Outro programa de teste
 int idade, j, k, @total;
 string nome, texto;
-write("Digite o seu nome: );
+write("Digite o seu nome: ");
 read(nome);
 write("Digite o seu sobrenome");
 read(sobrenome);
