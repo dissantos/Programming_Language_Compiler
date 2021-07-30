@@ -131,6 +131,7 @@ public class Lexer {
             case '!':
                 if (readch('=')) return Word.NEQ;
                 else return new Token('>');
+            // CONFERIR
         }
 
         //Números
