@@ -1,19 +1,21 @@
 class ListaCompras
-   string fruta;
-int qtd;
-int todas, soma=0;
-	write("Quantas frutas diferentes?");
-	read (todas);
+    string fruta;
+    int qtd;
+    int todas, soma;
 
 init
-do{
-write("Digite a fruta:");
-read (fruta);
-write("Qual quantidade?");
-read (qtd);
-soma = soma + soma;
-todas = todas -1;}
-			while (todas > 0)
-   write("Sua lista tem tamanho igual a:");
-   write(soma);
+    soma=0;
+    write("Quantas frutas diferentes?");
+    read (todas);
+    do{
+        write("Digite a fruta:");
+        read (fruta);
+        write("Qual quantidade?");
+        read (qtd);
+        soma = soma + soma;
+        todas = todas -1;
+    }
+	while (todas > 0);
+    write("Sua lista tem tamanho igual a:");
+    write(soma);
 stop
