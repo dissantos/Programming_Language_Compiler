@@ -21,5 +21,5 @@ init
     }
     else{
         write("Quantidade inválida.");
-    }
+    };
 stop

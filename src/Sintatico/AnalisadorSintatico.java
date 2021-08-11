@@ -121,7 +121,7 @@ public class AnalisadorSintatico {
                 this.eat(Tag.LITERAL);
                 break;
             default:
-                int [] tokens = {Tag.ID, Tag.NUMBER, '('};
+                int [] tokens = {Tag.ID, Tag.NUMBER, Tag.LITERAL, '('};
                 error(tokens);
         }
     }
@@ -144,7 +144,7 @@ public class AnalisadorSintatico {
                 this.factor();
                 break;
             default:
-                int [] tokens = {'-', '!', Tag.ID, Tag.NUMBER, '('};
+                int [] tokens = {'-', '!', Tag.ID, Tag.NUMBER, Tag.LITERAL, '('};
                 error(tokens);
         }
     }
@@ -190,7 +190,7 @@ public class AnalisadorSintatico {
                 this.z();
                 break;
             default:
-                int [] tokens = {'(', '!','-', Tag.NUMBER};
+                int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
     }
@@ -233,7 +233,7 @@ public class AnalisadorSintatico {
                 this.a();
                 break;
             default:
-                int [] tokens = {'(', '!','-', Tag.NUMBER};
+                int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
     }
@@ -251,7 +251,7 @@ public class AnalisadorSintatico {
                 this.expressionL();
                 break;
             default:
-                int [] tokens = {'(', '!', '-', Tag.NUMBER};
+                int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
     }
@@ -288,7 +288,7 @@ public class AnalisadorSintatico {
                 this.simpleexpr();
                 break;
             default:
-                int [] tokens = {'(', '!', '-', Tag.NUMBER};
+                int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
     }
@@ -366,7 +366,7 @@ public class AnalisadorSintatico {
                 this.expression();
                 break;
             default:
-                int [] tokens = {Tag.ID, '(', '!', '-', Tag.NUMBER};
+                int [] tokens = {Tag.ID, '(', '!', '-', Tag.NUMBER,  Tag.LITERAL};
                 error(tokens);
         }
     }
