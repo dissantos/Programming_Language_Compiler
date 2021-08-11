@@ -328,6 +328,7 @@ public class AnalisadorSintatico {
         switch (token.TAG){
             case Tag.WHILE:
                 this.eat(Tag.WHILE);
+                this.eat('(');
                 this.condition();
                 this.eat(')');
                 break;
