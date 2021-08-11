@@ -195,7 +195,7 @@ public class AnalisadorSintatico {
         }
     }
 
-    // a -> addop term A | epsilon
+    // a -> addop term A | lambda
     private void a() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case '+':
@@ -256,7 +256,7 @@ public class AnalisadorSintatico {
         }
     }
 
-    // expression' -> relop simpleexpr | epsilon
+    // expression' -> relop simpleexpr | lambda
     private void expressionL() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case '>':
@@ -370,7 +370,7 @@ public class AnalisadorSintatico {
         }
     }
 
-    // ifstmt' -> else { stmtlist } | epsilon
+    // ifstmt' -> else { stmtlist } | lambda
     private void ifstmtPrime() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case Tag.ELSE:
@@ -444,7 +444,7 @@ public class AnalisadorSintatico {
         }
     }
 
-    // stmtaux -> stmt ; stmtaux | epsilon
+    // stmtaux -> stmt ; stmtaux | lambda
     private void stmtaux() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case Tag.WRITE:
@@ -515,7 +515,7 @@ public class AnalisadorSintatico {
         }
     }
 
-    // identlistaux -> , identifier identlistaux | epsilon
+    // identlistaux -> , identifier identlistaux | lambda
     private void identlistaux() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case ',':
@@ -559,7 +559,7 @@ public class AnalisadorSintatico {
         }
     }
 
-    // decllist -> decl ; decllist | epsilon
+    // decllist -> decl ; decllist | lambda
     private void decllist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case Tag.FLOAT:
