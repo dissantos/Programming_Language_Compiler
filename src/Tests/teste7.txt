@@ -8,11 +8,11 @@ write("Digite o valor de y:");
 read (y);
 write("Digite o valor de z:");
 read (z);
-	if (x>z || y>z){
-		write(Pelo menos um numero e > que z);
+	if ((x>z) || (y>z)){
+		write("Pelo menos um numero e > que z");
 	}
 	else{
-		do{z=z+1}
-		while (z<y &|& z<x);
-	}
+		do{z=z+1;}
+		while ((z<y) && (z<x));
+	};
 stop
