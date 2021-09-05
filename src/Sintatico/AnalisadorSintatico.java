@@ -3,12 +3,18 @@ import Exceptions.Erro;
 import Exceptions.LiteralWrongFormatException;
 import Exceptions.NotANumberException;
 import Exceptions.WrongFormatException;
+import TabelaDeSimbolos.TabelaDeSimbolos;
 import lexicalAnalyzer.Lexer;
+import lexicalAnalyzer.Number;
 import lexicalAnalyzer.Tag;
 import lexicalAnalyzer.Token;
+import lexicalAnalyzer.Word;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
+import static Semantico.VerificacaoSemantica.unicidade;
+import static Semantico.VerificacaoSemantica.verificaTipo;
 
 public class AnalisadorSintatico {
     private Lexer lex;
@@ -104,60 +110,74 @@ public class AnalisadorSintatico {
     }
 
     // factor -> ID |  NUMBER | (expression)
-    private void factor() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String factor() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
                 this.eat(Tag.ID);
+                tipo = ((Word)token).getTipo();
                 break;
             case Tag.NUMBER:
                 this.eat(Tag.NUMBER);
+                tipo = ((Number)token).getTipo();
                 break;
             case '(':
                 this.eat('(');
-                this.expression();
+                tipo = this.expression();
                 this.eat(')');
                 break;
             case Tag.LITERAL:
+                tipo = "string";
                 this.eat(Tag.LITERAL);
                 break;
             default:
                 int [] tokens = {Tag.ID, Tag.NUMBER, Tag.LITERAL, '('};
                 error(tokens);
         }
+        return tipo;
     }
 
     // factor -> -factor|  !factor | factor
-    private void factora() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String factora() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case '-':
                 this.eat('-');
-                this.factor();
+                tipo = this.factor();
                 break;
             case '!':
                 eat('!');
-                this.factor();
+                tipo = this.factor();
                 break;
             case Tag.ID:
             case Tag.NUMBER:
             case Tag.LITERAL:
             case '(':
-                this.factor();
+                tipo = this.factor();
                 break;
             default:
                 int [] tokens = {'-', '!', Tag.ID, Tag.NUMBER, Tag.LITERAL, '('};
                 error(tokens);
         }
+        return tipo;
     }
 
     // z -> mulop factora Z| lambda
-    private void z() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String z() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case '*':
             case '/':
             case Tag.AND:
                 this.mulop();
-                this.factora();
-                this.z();
+                tipo1 = this.factora();
+                tipo2 = this.z();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case ';':
             case ')':
@@ -170,15 +190,20 @@ public class AnalisadorSintatico {
             case Tag.EQ:
             case '+':
             case Tag.OR:
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = {'*', '/', Tag.AND, ';',')', '-', '>', Tag.GE, '<', Tag.LE, Tag.NE, Tag.EQ, '+', Tag.OR};
                 error(tokens);
         }
+        return tipo;
     }
 
     // term -> factora Z
-    private void term() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String term() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -186,24 +211,36 @@ public class AnalisadorSintatico {
             case '-':
             case Tag.NUMBER:
             case Tag.LITERAL:
-                this.factora();
-                this.z();
+                tipo1 = this.factora();
+                tipo2 = this.z();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
+        return tipo;
     }
 
     // a -> addop term A | lambda
-    private void a() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String a() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case '+':
             case '-':
             case Tag.OR:
                 this.addop();
-                this.term();
-                this.a();
+                tipo1 = this.term();
+                tipo2 = this.a();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case ';':
             case ')':
@@ -213,15 +250,20 @@ public class AnalisadorSintatico {
             case Tag.LE:
             case Tag.NE:
             case Tag.EQ:
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = {';',')', '-', '>', Tag.GE, '<', Tag.LE, Tag.NE, Tag.EQ, '+', Tag.OR};
                 error(tokens);
         }
+        return tipo;
     }
 
     // simpleexpr -> term A
-    private void simpleexpr() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String simpleexpr() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -229,17 +271,25 @@ public class AnalisadorSintatico {
             case '-':
             case Tag.NUMBER:
             case Tag.LITERAL:
-                this.term();
-                this.a();
+                tipo1 = this.term();
+                tipo2 = this.a();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
+        return tipo;
     }
 
     // expression -> simpleexpr expression’
-    private void expression() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String expression() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -247,17 +297,23 @@ public class AnalisadorSintatico {
             case '-':
             case Tag.NUMBER:
             case Tag.LITERAL:
-                this.simpleexpr();
-                this.expressionL();
+                tipo1 = this.simpleexpr();
+                tipo2 = this.expressionL();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
+        return tipo;
     }
 
     // expression' -> relop simpleexpr | lambda
-    private void expressionL() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String expressionL() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case '>':
             case '<':
@@ -266,18 +322,21 @@ public class AnalisadorSintatico {
             case Tag.EQ:
             case Tag.NE:
                 this.relop();
-                this.simpleexpr();
+                tipo = this.simpleexpr();
                 break;
             case ')':
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = { '>', Tag.GE, '<', Tag.LE, Tag.NE, Tag.EQ, ')'};
                 error(tokens);
         }
+        return tipo;
     }
 
     // writable -> simpleexpr
-    private void writable() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String writable() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -285,35 +344,46 @@ public class AnalisadorSintatico {
             case '-':
             case Tag.NUMBER:
             case Tag.LITERAL:
-                this.simpleexpr();
+                tipo = this.simpleexpr();
                 break;
             default:
                 int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
+        return tipo;
     }
 
     // writestmt -> write (writable)
-    private void writestmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String writestmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.WRITE:
                 this.eat(Tag.WRITE);
                 this.eat('(');
-                this.writable();
+                tipo = this.writable();
+                if (!tipo.equals("tipo_erro")){
+                    tipo = "tipo_vazio";
+                }
                 this.eat(')');
                 break;
             default:
                 int [] tokens = {Tag.WRITE};
                 error(tokens);
         }
+        return tipo;
     }
 
     // readstmt -> read (identifier)
-    private void readstmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String readstmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.READ:
                 this.eat(Tag.READ);
                 this.eat('(');
+                tipo = lex.getWords().obterTipo(((Word)token).getLexeme());
+                if (!tipo.equals("tipo_erro")){
+                    tipo = "tipo_vazio";
+                }
                 this.eat(Tag.ID);
                 this.eat(')');
                 break;
@@ -321,30 +391,34 @@ public class AnalisadorSintatico {
                 int [] tokens = {Tag.READ};
                 error(tokens);
         }
+        return tipo;
     }
 
     // dosuffix -> while ( condition )
-    private void dosuffix() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String dosuffix() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.WHILE:
                 this.eat(Tag.WHILE);
                 this.eat('(');
-                this.condition();
+                tipo = this.condition();
                 this.eat(')');
                 break;
             default:
                 int [] tokens = {Tag.WHILE};
                 error(tokens);
         }
+        return tipo;
     }
 
     // dostmt -> do { stmtlist } dosuffix
-    private void dostmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String dostmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.DO:
                 this.eat(Tag.DO);
                 this.eat('{');
-                this.stmtlist();
+                tipo = this.stmtlist();
                 this.eat('}');
                 this.dosuffix();
                 break;
@@ -352,10 +426,12 @@ public class AnalisadorSintatico {
                 int [] tokens = {Tag.DO};
                 error(tokens);
         }
+        return tipo;
     }
 
     // condition -> expression
-    private void condition() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String condition() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -363,234 +439,332 @@ public class AnalisadorSintatico {
             case '-':
             case Tag.NUMBER:
             case Tag.LITERAL:
-                this.expression();
+                tipo = this.expression();
+                if (!tipo.equals("int")){
+                    tipo = "tipo_erro";
+                }
                 break;
             default:
                 int [] tokens = {Tag.ID, '(', '!', '-', Tag.NUMBER,  Tag.LITERAL};
                 error(tokens);
         }
+        return tipo;
     }
 
     // ifstmt' -> else { stmtlist } | lambda
-    private void ifstmtPrime() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String ifstmtPrime() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ELSE:
                 this.eat(Tag.ELSE);
                 this.eat('{');
-                this.stmtlist();
+                tipo = this.stmtlist();
                 this.eat('}');
                 break;
             case ';':
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = {Tag.ELSE, ';'};
                 error(tokens);
         }
+        return tipo;
     }
 
     // ifstmt -> if ( condition ) { stmtlist } ifstmt'
-    private void ifstmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String ifstmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
+        String tipo3 = "tipo_erro";
         switch (token.TAG){
             case Tag.IF:
                 this.eat(Tag.IF);
                 this.eat('(');
-                this.condition();
+                tipo1 = this.condition();
                 this.eat(')');
                 this.eat('{');
-                this.stmtlist();
+                tipo2 = this.stmtlist();
                 this.eat('}');
-                this.ifstmtPrime();
+                tipo3 = this.ifstmtPrime();
+                if (tipo1.equals("int") && tipo2.equals("tipo_vazio") && (tipo3.equals("nulo") || tipo3.equals("tipo_vazio"))){
+                    tipo = "tipo_vazio";
+                }
+                else{
+                    tipo = "tipo_erro";
+                }
                 break;
             default:
                 int [] tokens = {Tag.IF};
                 error(tokens);
         }
+        return tipo;
     }
 
     // assignstmt -> identifier = simple_expr
-    private void assignstmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String assignstmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
                 this.eat(Tag.ID);
+                tipo1 = lex.getWords().obterTipo(((Word)token).getLexeme());
                 this.eat('=');
-                this.simpleexpr();
+                tipo2 = this.simpleexpr();
+                tipo = verificaTipo(tipo1, tipo2);
+                if (!tipo.equals("tipo_erro")){
+                    tipo = "tipo_vazio";
+                }
                 break;
             default:
                 int [] tokens = {Tag.ID};
                 error(tokens);
         }
+        return tipo;
     }
 
     // stmt -> writestmt | readstmt | dostmt | ifstmt | assignstmt
-    private void stmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String stmt() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.WRITE:
-                this.writestmt();
+                tipo = this.writestmt();
                 break;
             case Tag.READ:
-                this.readstmt();
+                tipo = this.readstmt();
                 break;
             case Tag.DO:
-                this.dostmt();
+                tipo = this.dostmt();
                 break;
             case Tag.IF:
-                this.ifstmt();
+                tipo = this.ifstmt();
                 break;
             case Tag.ID:
-                this.assignstmt();
+                tipo = this.assignstmt();
                 break;
             default:
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID};
                 error(tokens);
         }
+        return tipo;
     }
 
     // stmtaux -> stmt ; stmtaux | lambda
-    private void stmtaux() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String stmtaux() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.WRITE:
             case Tag.READ:
             case Tag.DO:
             case Tag.IF:
             case Tag.ID:
-                this.stmt();
+                tipo1 = this.stmt();
                 this.eat(';');
-                this.stmtaux();
+                tipo2 = this.stmtaux();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case '}':
             case Tag.STOP:
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID, '}', Tag.STOP};
                 error(tokens);
         }
+        return tipo;
     }
 
     // stmtlist -> stmt ; stmtaux
-    private void stmtlist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String stmtlist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.WRITE:
             case Tag.READ:
             case Tag.DO:
             case Tag.IF:
             case Tag.ID:
-                this.stmt();
+                tipo1 = this.stmt();
                 this.eat(';');
-                this.stmtaux();
+                tipo2 = this.stmtaux();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID};
                 error(tokens);
         }
+        return tipo;
     }
 
     // body ->  init stmtlist stop
-    private void body() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String body() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.INIT:
                 this.eat(Tag.INIT);
-                this.stmtlist();
+                tipo = this.stmtlist();
                 this.eat(Tag.STOP);
                 break;
             default:
                 int [] tokens = {Tag.INIT};
                 error(tokens);
         }
+        return tipo;
     }
 
     // type -> float | int | string
-    private void type() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String type() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         switch (token.TAG){
             case Tag.FLOAT:
                 this.eat(Tag.FLOAT);
-                break;
+                return "float";
             case Tag.INT:
                 this.eat(Tag.INT);
-                break;
+                return "int";
             case Tag.STRING:
                 this.eat(Tag.STRING);
-                break;
+                return "string";
             default:
                 int [] tokens = {Tag.FLOAT, Tag.INT, Tag.STRING};
                 error(tokens);
+                return "tipo_erro";
         }
     }
 
     // identlistaux -> , identifier identlistaux | lambda
-    private void identlistaux() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String identlistaux(String tipoAux) throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case ',':
                 this.eat(',');
+                if (unicidade(lex.getWords(), (Word)token).equals("tipo_vazio")){
+                    TabelaDeSimbolos aux = lex.getWords();
+                    aux.incluirTipo(((Word)token).getLexeme(), tipoAux);
+                    lex.setWords(aux);
+                    tipo1 = "tipo_vazio";
+                }
                 this.eat(Tag.ID);
-                this.identlistaux();
+                tipo2 = this.identlistaux(tipoAux);
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case ';':
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = {',',';'};
                 error(tokens);
         }
+        return tipo;
     }
 
     // identlist -> identifier identlistaux
-    private void identlist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String identlist(String tipoAux) throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
+                if (unicidade(lex.getWords(), (Word)token).equals("tipo_vazio")){
+                    TabelaDeSimbolos aux = lex.getWords();
+                    aux.incluirTipo(((Word)token).getLexeme(), tipoAux);
+                    lex.setWords(aux);
+                    tipo1 = "tipo_vazio";
+                }
                 this.eat(Tag.ID);
-                this.identlistaux();
+                tipo2 = this.identlistaux(tipoAux);
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {Tag.ID};
                 error(tokens);
         }
+        return tipo;
     }
 
     // decl -> type identlist
-    private void decl() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String decl() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
         switch (token.TAG){
             case Tag.FLOAT:
             case Tag.INT:
             case Tag.STRING:
-                this.type();
-                this.identlist();
+                tipo1 = this.type();
+                tipo = this.identlist(tipo1);
                 break;
             default:
                 int [] tokens = {Tag.FLOAT, Tag.INT, Tag.STRING};
                 error(tokens);
         }
+        return tipo;
     }
 
     // decllist -> decl ; decllist | lambda
-    private void decllist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    private String decllist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.FLOAT:
             case Tag.INT:
             case Tag.STRING:
-                this.decl();
+                tipo1 = this.decl();
                 this.eat(';');
-                this.decllist();
+                tipo2 = this.decllist();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case Tag.INIT:
+                tipo = "nulo";
                 break;
             default:
                 int [] tokens = {Tag.FLOAT, Tag.INT, Tag.STRING, Tag.INIT};
                 error(tokens);
         }
+        return tipo;
     }
 
     // program ->  class identifier decllist body
-    public void program() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+    public String program() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
+        String tipo = "tipo_erro";
+        String tipo1 = "tipo_erro";
+        String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.CLASS:
                 this.eat(Tag.CLASS);
                 this.eat(Tag.ID);
-                this.decllist();
-                this.body();
+                tipo1 = this.decllist();
+                tipo2 = this.body();
+                if (tipo2.equals("nulo")){
+                    tipo2 = tipo1;
+                }
+                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {Tag.CLASS};
                 error(tokens);
         }
+        return tipo;
     }
 
     public ArrayList<Erro> getErros() {

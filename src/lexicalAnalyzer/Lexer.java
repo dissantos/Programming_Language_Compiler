@@ -136,6 +136,7 @@ public class Lexer {
 
         //Números
         if (Character.isDigit(ch)){
+            String tipo = "int";
             double value = 0;
             double aux = -1;
             do{
@@ -143,6 +144,7 @@ public class Lexer {
                 readch();
             }while(Character.isDigit(ch));
             if ( ch == '.'){
+                tipo = "float";
                 readch();
                 while ( Character.isDigit(ch) ){
                     value = value + Character.digit(ch,10)*Math.pow(10, aux);
@@ -154,7 +156,7 @@ public class Lexer {
                 String msg = String.format("\nERRO LEXICO: \nFormato de número inválido, com a presença do caractere %c na linha %d", ch, line);
                 throw new NotANumberException(msg);
             }
-            return new Number(value);
+            return new Number(value, tipo);
         }
 
         //Identificadores
@@ -210,5 +212,7 @@ public class Lexer {
     public TabelaDeSimbolos getWords() {
         return this.words;
     }
-
+    public void setWords(TabelaDeSimbolos words) {
+        this.words = words;
+    }
 }

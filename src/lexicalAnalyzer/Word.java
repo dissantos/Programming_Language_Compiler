@@ -2,6 +2,7 @@ package lexicalAnalyzer;
 
 public class Word extends Token{
     private String lexeme;
+    private String tipo;
     public static final Word NEQ = new Word("!=", Tag.NE);
     public static final Word EQ = new Word("==", Tag.EQ);
     public static final Word LE = new Word("<=", Tag.LE);
@@ -21,5 +22,15 @@ public class Word extends Token{
                 '}';
     }
 
+    public String getLexeme() {
+        return lexeme;
+    }
 
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
 }

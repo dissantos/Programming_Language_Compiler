@@ -27,6 +27,21 @@ public class TabelaDeSimbolos {
         return null; //caso Token não exista em uma das TS
     }
 
+    public String obterTipo( String lexeme){
+        if( this.get(lexeme) == null){
+            return "tipo_erro";
+        }
+        else{
+            return this.get(lexeme).getTipo();
+        }
+    }
+
+    public void incluirTipo(String lexeme, String tipo){
+        Word aux = get(lexeme);
+        aux.setTipo(tipo);
+        tabelaDeSimbolos.put(lexeme, aux);
+    }
+
     public Hashtable<String, Object> getTabelaDeSimbolos() {
         return tabelaDeSimbolos;
     }
