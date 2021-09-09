@@ -16,12 +16,13 @@ import java.util.ArrayList;
 import static Semantico.VerificacaoSemantica.unicidade;
 import static Semantico.VerificacaoSemantica.verificaTipo;
 
-public class AnalisadorSintatico {
+public class AnalisadorSintaticoSemantico {
     private Lexer lex;
     private Token token;
     private ArrayList<Erro> erros;
+    public int erros_semanticos = 0;
 
-    public AnalisadorSintatico(Lexer lex) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
+    public AnalisadorSintaticoSemantico(Lexer lex) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         this.lex = lex;
         this.advance();
         this.erros = new ArrayList<Erro>();
@@ -43,6 +44,7 @@ public class AnalisadorSintatico {
     private void error(int [] tokensEsperados) throws NotANumberException, LiteralWrongFormatException, IOException, WrongFormatException {
         Erro erro = new Erro(lex.line, this.token, tokensEsperados);
         erros.add(erro);
+        System.out.println(erro);
         advance();
     }
 
@@ -114,12 +116,13 @@ public class AnalisadorSintatico {
         String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
-                this.eat(Tag.ID);
+                lex.setWord((Word) token);
                 tipo = ((Word)token).getTipo();
+                this.eat(Tag.ID);
                 break;
             case Tag.NUMBER:
-                this.eat(Tag.NUMBER);
                 tipo = ((Number)token).getTipo();
+                this.eat(Tag.NUMBER);
                 break;
             case '(':
                 this.eat('(');
@@ -164,20 +167,29 @@ public class AnalisadorSintatico {
 
     // z -> mulop factora Z| lambda
     private String z() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case '*':
             case '/':
             case Tag.AND:
+                Token op = token;
                 this.mulop();
                 tipo1 = this.factora();
                 tipo2 = this.z();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
+                if(op.TAG == '/' && (tipo1.equals("int")) && (tipo2.equals("nulo") || tipo2.equals("/int"))){
+                    tipo = "/int";
+                }
+                if(tipo.equals("string")){
+                    tipo = "tipo_erro-tipo-invalido";
+                }
+
                 break;
             case ';':
             case ')':
@@ -201,9 +213,9 @@ public class AnalisadorSintatico {
 
     // term -> factora Z
     private String term() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -214,9 +226,13 @@ public class AnalisadorSintatico {
                 tipo1 = this.factora();
                 tipo2 = this.z();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
+                if(tipo1.equals("int") && tipo2.equals("/int")){
+                    tipo = "float";
+                }
                 break;
             default:
                 int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
@@ -227,20 +243,28 @@ public class AnalisadorSintatico {
 
     // a -> addop term A | lambda
     private String a() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case '+':
             case '-':
             case Tag.OR:
+                Token op = token;
                 this.addop();
                 tipo1 = this.term();
                 tipo2 = this.a();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
+                if(tipo1.equals("string") && (tipo2.equals("nulo") || tipo2.equals("+string")) && op.TAG == '+'){
+                    tipo = "+string";
+                } else if(tipo.equals("string")){
+                    tipo = "tipo_erro-tipo-invalido";
+                }
+
                 break;
             case ';':
             case ')':
@@ -261,9 +285,9 @@ public class AnalisadorSintatico {
 
     // simpleexpr -> term A
     private String simpleexpr() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -274,9 +298,14 @@ public class AnalisadorSintatico {
                 tipo1 = this.term();
                 tipo2 = this.a();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
+                if(tipo1.equals("string") && tipo2.equals("+string")){
+                    tipo = "string";
+                }
+
                 break;
             default:
                 int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
@@ -287,9 +316,9 @@ public class AnalisadorSintatico {
 
     // expression -> simpleexpr expression’
     private String expression() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case Tag.ID:
             case '(':
@@ -300,9 +329,10 @@ public class AnalisadorSintatico {
                 tipo1 = this.simpleexpr();
                 tipo2 = this.expressionL();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
@@ -313,7 +343,7 @@ public class AnalisadorSintatico {
 
     // expression' -> relop simpleexpr | lambda
     private String expressionL() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
+        String tipo = null;
         switch (token.TAG){
             case '>':
             case '<':
@@ -361,8 +391,18 @@ public class AnalisadorSintatico {
                 this.eat(Tag.WRITE);
                 this.eat('(');
                 tipo = this.writable();
-                if (!tipo.equals("tipo_erro")){
+                if (!tipo.contains("tipo_erro")){
                     tipo = "tipo_vazio";
+                }else if(tipo.contains("nao-declarado")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\texpressao na funcao write( ) da linha "+ lex.line + " contem identificador nao declarado.");
+                }else if(tipo.contains("tipo-invalido")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\texpressao na funcao write( ) da linha "+ lex.line + " contem identificadores com tipos incompativeis.");
                 }
                 this.eat(')');
                 break;
@@ -381,10 +421,18 @@ public class AnalisadorSintatico {
                 this.eat(Tag.READ);
                 this.eat('(');
                 tipo = lex.getWords().obterTipo(((Word)token).getLexeme());
-                if (!tipo.equals("tipo_erro")){
+                if (!tipo.contains("tipo_erro")){
                     tipo = "tipo_vazio";
+                }else if(tipo.contains("nao-declarado")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tidentificador nao declarado na funcao read( ) da linha "+ lex.line + ".");
                 }
+                Token aux = token;
                 this.eat(Tag.ID);
+                if(aux.TAG == Tag.ID)
+                    lex.setWord((Word) aux);
                 this.eat(')');
                 break;
             default:
@@ -396,12 +444,30 @@ public class AnalisadorSintatico {
 
     // dosuffix -> while ( condition )
     private String dosuffix() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
+        String tipo = null;
         switch (token.TAG){
             case Tag.WHILE:
                 this.eat(Tag.WHILE);
                 this.eat('(');
                 tipo = this.condition();
+                if(tipo.equals("int")){
+                    tipo = "tipo_vazio";
+                } else if(tipo.contains("nao-declarado")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tcondicao no do...while(condicao) da linha "+ lex.line + " contem identificador nao declarado.");
+                }else if(tipo.contains("tipo-invalido")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tcondicao no do...while(condicao) da linha "+ lex.line + " contem identificadores com tipos incompativeis.");
+                }else {
+                    tipo = "tipo_erro";
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tcondicao no do...while(condicao) da linha "+ lex.line + " deve ser do tipo inteira.");
+                }
                 this.eat(')');
                 break;
             default:
@@ -440,9 +506,6 @@ public class AnalisadorSintatico {
             case Tag.NUMBER:
             case Tag.LITERAL:
                 tipo = this.expression();
-                if (!tipo.equals("int")){
-                    tipo = "tipo_erro";
-                }
                 break;
             default:
                 int [] tokens = {Tag.ID, '(', '!', '-', Tag.NUMBER,  Tag.LITERAL};
@@ -489,10 +552,26 @@ public class AnalisadorSintatico {
                 tipo3 = this.ifstmtPrime();
                 if (tipo1.equals("int") && tipo2.equals("tipo_vazio") && (tipo3.equals("nulo") || tipo3.equals("tipo_vazio"))){
                     tipo = "tipo_vazio";
-                }
-                else{
+                } else if(tipo1.contains("nao-declarado")){
                     tipo = "tipo_erro";
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tcondicao no if(condicao) da linha "+ lex.line + " contem identificador nao declarado.");
+                }else if(tipo1.contains("tipo-invalido")){
+                    tipo = "tipo_erro";
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tcondicao no if(condicao) da linha "+ lex.line + " contem identificadores com tipos incompativeis.");
+                }else {
+                    tipo = "tipo_erro";
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tcondicao no if(condicao) da linha "+ lex.line + " deve ser do tipo inteira.");
                 }
+
+
                 break;
             default:
                 int [] tokens = {Tag.IF};
@@ -508,19 +587,36 @@ public class AnalisadorSintatico {
         String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
+                Token aux = token;
                 this.eat(Tag.ID);
-                tipo1 = lex.getWords().obterTipo(((Word)token).getLexeme());
+                if(aux.TAG == Tag.ID)
+                    lex.setWord((Word) aux);
+                tipo1 = lex.getWords().obterTipo(((Word)aux).getLexeme());
                 this.eat('=');
                 tipo2 = this.simpleexpr();
                 tipo = verificaTipo(tipo1, tipo2);
-                if (!tipo.equals("tipo_erro")){
+                if (!tipo.contains("tipo_erro")){
                     tipo = "tipo_vazio";
+                } else if(tipo.contains("nao-declarado")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tatribuição na linha "+ lex.line + " contem identificador nao declarado.");
+                }else if(tipo.contains("tipo-invalido")){
+                    erros_semanticos++;
+                    System.out.println("--------------------------------------------");
+                    System.out.println("ERRO SEMÂNTICO:\n" +
+                            "\tatribuição da linha "+ lex.line + " contem identificadores com tipos incompativeis.");
                 }
+
+
                 break;
             default:
                 int [] tokens = {Tag.ID};
                 error(tokens);
         }
+
+
         return tipo;
     }
 
@@ -552,9 +648,9 @@ public class AnalisadorSintatico {
 
     // stmtaux -> stmt ; stmtaux | lambda
     private String stmtaux() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case Tag.WRITE:
             case Tag.READ:
@@ -565,9 +661,10 @@ public class AnalisadorSintatico {
                 this.eat(';');
                 tipo2 = this.stmtaux();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case '}':
             case Tag.STOP:
@@ -582,9 +679,9 @@ public class AnalisadorSintatico {
 
     // stmtlist -> stmt ; stmtaux
     private String stmtlist() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
-        String tipo1 = "tipo_erro";
-        String tipo2 = "tipo_erro";
+        String tipo = null;
+        String tipo1;
+        String tipo2;
         switch (token.TAG){
             case Tag.WRITE:
             case Tag.READ:
@@ -595,9 +692,10 @@ public class AnalisadorSintatico {
                 this.eat(';');
                 tipo2 = this.stmtaux();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID};
@@ -608,7 +706,7 @@ public class AnalisadorSintatico {
 
     // body ->  init stmtlist stop
     private String body() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        String tipo = "tipo_erro";
+        String tipo = null;
         switch (token.TAG){
             case Tag.INIT:
                 this.eat(Tag.INIT);
@@ -649,18 +747,32 @@ public class AnalisadorSintatico {
         switch (token.TAG){
             case ',':
                 this.eat(',');
-                if (unicidade(lex.getWords(), (Word)token).equals("tipo_vazio")){
-                    TabelaDeSimbolos aux = lex.getWords();
-                    aux.incluirTipo(((Word)token).getLexeme(), tipoAux);
-                    lex.setWords(aux);
-                    tipo1 = "tipo_vazio";
+                Token aux1 = token;
+                if(aux1.TAG == Tag.ID) {
+
+                    if (unicidade(lex.getWords(), (Word) token).contains("nao-declarado")) {
+                        TabelaDeSimbolos aux = lex.getWords();
+                        aux.incluirTipo(((Word) aux1), tipoAux);
+                        lex.setWords(aux);
+                        tipo1 = "tipo_vazio";
+                    } else {
+                        erros_semanticos++;
+                        System.out.println("--------------------------------------------");
+                        System.out.println("ERRO SEMANTICO:\n" +
+                                "\tvariavel '" + ((Word) token).getLexeme() + "' na linha " + lex.line + " ja foi declarada antes");
+                    }
+
+                    lex.setWord((Word) aux1);
                 }
+
                 this.eat(Tag.ID);
+
                 tipo2 = this.identlistaux(tipoAux);
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case ';':
                 tipo = "nulo";
@@ -679,18 +791,31 @@ public class AnalisadorSintatico {
         String tipo2 = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
-                if (unicidade(lex.getWords(), (Word)token).equals("tipo_vazio")){
-                    TabelaDeSimbolos aux = lex.getWords();
-                    aux.incluirTipo(((Word)token).getLexeme(), tipoAux);
-                    lex.setWords(aux);
-                    tipo1 = "tipo_vazio";
+                Token aux1 = token;
+                if(aux1.TAG == Tag.ID) {
+
+                    if (unicidade(lex.getWords(), (Word) token).equals("nao-declarado")) {
+                        TabelaDeSimbolos aux = lex.getWords();
+                        aux.incluirTipo((Word) aux1, tipoAux);
+                        lex.setWords(aux);
+                        tipo1 = "tipo_vazio";
+                    } else {
+                        erros_semanticos++;
+                        System.out.println("--------------------------------------------");
+                        System.out.println("ERRO SEMANTICO:\n" +
+                                "\tvariavel '" + ((Word) token).getLexeme() + "' na linha " + lex.line + " ja foi declarada antes");
+                    }
+
+                    lex.setWord((Word) aux1);
                 }
                 this.eat(Tag.ID);
+
                 tipo2 = this.identlistaux(tipoAux);
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {Tag.ID};
@@ -730,9 +855,10 @@ public class AnalisadorSintatico {
                 this.eat(';');
                 tipo2 = this.decllist();
                 if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                    tipo = tipo1;
+                } else {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             case Tag.INIT:
                 tipo = "nulo";
@@ -752,13 +878,15 @@ public class AnalisadorSintatico {
         switch (token.TAG){
             case Tag.CLASS:
                 this.eat(Tag.CLASS);
+                Token aux = token;
                 this.eat(Tag.ID);
+                if(aux.TAG == Tag.ID)
+                    lex.setWord((Word) aux);
                 tipo1 = this.decllist();
                 tipo2 = this.body();
-                if (tipo2.equals("nulo")){
-                    tipo2 = tipo1;
+                if(tipo1 != null && tipo2 != null) {
+                    tipo = verificaTipo(tipo1, tipo2);
                 }
-                tipo = verificaTipo(tipo1, tipo2);
                 break;
             default:
                 int [] tokens = {Tag.CLASS};

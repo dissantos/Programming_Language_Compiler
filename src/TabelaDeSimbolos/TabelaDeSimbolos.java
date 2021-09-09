@@ -36,10 +36,9 @@ public class TabelaDeSimbolos {
         }
     }
 
-    public void incluirTipo(String lexeme, String tipo){
-        Word aux = get(lexeme);
+    public void incluirTipo(Word aux, String tipo){
         aux.setTipo(tipo);
-        tabelaDeSimbolos.put(lexeme, aux);
+        tabelaDeSimbolos.put(aux.getLexeme(), aux);
     }
 
     public Hashtable<String, Object> getTabelaDeSimbolos() {

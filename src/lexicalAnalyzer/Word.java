@@ -13,6 +13,7 @@ public class Word extends Token{
     public Word(String s, int TAG) {
         super(TAG);
         this.lexeme = s;
+        this.tipo = "tipo_erro-nao-declarado";
     }
 
     @Override

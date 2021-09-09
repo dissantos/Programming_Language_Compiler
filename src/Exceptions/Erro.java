@@ -46,12 +46,14 @@ public class Erro {
         char ch;
         if(this.errado.TAG <= 255) {
             ch = (char) this.errado.TAG;
-            return "Erro Sintatico na linha " +
+            return "--------------------------------------------\n" +
+                    "ERRO SINTATICO:\n\tlinha " +
                     line +
                     ".\n Token na entrada: " + ch +
                     ".\n Tokens Esperados =" + sb.toString();
         }else{
-            return "Erro Sintatico na linha " +
+            return "--------------------------------------------\n" +
+                    "ERRO SINTATICO:\n\tlinha " +
                     line +
                     ".\n Token na entrada: " + errado +
                     " .\n Tokens Esperados = " + sb.toString();

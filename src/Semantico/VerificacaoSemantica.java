@@ -5,11 +5,11 @@ import lexicalAnalyzer.Word;
 
 public class VerificacaoSemantica {
     public static String unicidade(TabelaDeSimbolos tabelaDeSimbolos, Word palavra){
-        if (tabelaDeSimbolos.get(palavra.getLexeme()) != null){
-            return "tipo_erro";
+        if (tabelaDeSimbolos.get(palavra.getLexeme()) == null){
+            return "nao-declarado";
         }
         else{
-            return "tipo_vazio";
+            return "declarado";
         }
     }
 
@@ -17,8 +17,11 @@ public class VerificacaoSemantica {
         if(tipo1.equals(tipo2)){
             return tipo1;
         }
-        else{
-            return "tipo_erro";
+        else if(tipo1.equals("tipo_erro-nao-declarado") || tipo2.equals("tipo_erro-nao-declarado")){
+
+            return "tipo_erro-nao-declarado";
+        } else {
+            return "tipo_erro-tipo-invalido";
         }
     }
 }

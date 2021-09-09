@@ -172,7 +172,7 @@ public class Lexer {
                 return w;
             }
             w = new Word (s, Tag.ID);
-            words.put(s, w);
+            //words.put(s, w);
             return w;
         }
 
@@ -214,5 +214,9 @@ public class Lexer {
     }
     public void setWords(TabelaDeSimbolos words) {
         this.words = words;
+    }
+
+    public void setWord(Word w){
+        this.words.put(w.getLexeme(), w);
     }
 }
