@@ -1,8 +1,9 @@
 class Teste3
 /** Verificando fluxo de controle
 Programa com if e while aninhados **/
-int i;
-int media, soma;
+int i, qtd;
+int soma, altura;
+float media;
 init
     soma = 0;
     write("Quantos dados deseja informar?" );
