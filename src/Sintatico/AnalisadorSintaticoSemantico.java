@@ -551,7 +551,7 @@ public class AnalisadorSintaticoSemantico {
                 tipo2 = this.stmtlist();
                 this.eat('}');
                 tipo3 = this.ifstmtPrime();
-                if (tipo1.equals("int") && tipo2.equals("tipo_vazio") && (tipo3.equals("nulo") || tipo3.equals("tipo_vazio"))){
+                if ((tipo1.equals("int") || tipo1.equals("float")) && tipo2.equals("tipo_vazio") && (tipo3.equals("nulo") || tipo3.equals("tipo_vazio"))){
                     tipo = "tipo_vazio";
                 } else if(tipo1.contains("nao-declarado")){
                     tipo = "tipo_erro";

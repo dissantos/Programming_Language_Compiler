@@ -1,6 +1,5 @@
 class Compara
-	int x, y;
-	float z;
+	int x, y, z;
 init
 	write("Digite o valor de x:");
 read (x);
