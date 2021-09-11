@@ -36,8 +36,9 @@ public class TabelaDeSimbolos {
         }
     }
 
-    public void incluirTipo(Word aux, String tipo){
+    public void incluirTipoOffset(Word aux, String tipo, int offset){
         aux.setTipo(tipo);
+        aux.setOffset(offset);
         tabelaDeSimbolos.put(aux.getLexeme(), aux);
     }
 

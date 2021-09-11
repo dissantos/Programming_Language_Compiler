@@ -21,6 +21,7 @@ public class AnalisadorSintaticoSemantico {
     private Token token;
     private ArrayList<Erro> erros;
     public int erros_semanticos = 0;
+    private int offset = 0;
 
     public AnalisadorSintaticoSemantico(Lexer lex) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         this.lex = lex;
@@ -752,7 +753,7 @@ public class AnalisadorSintaticoSemantico {
 
                     if (unicidade(lex.getWords(), (Word) token).contains("nao-declarado")) {
                         TabelaDeSimbolos aux = lex.getWords();
-                        aux.incluirTipo(((Word) aux1), tipoAux);
+                        aux.incluirTipoOffset(((Word) aux1), tipoAux,offset);
                         lex.setWords(aux);
                         tipo1 = "tipo_vazio";
                     } else {
@@ -762,6 +763,9 @@ public class AnalisadorSintaticoSemantico {
                                 "\tvariavel '" + ((Word) token).getLexeme() + "' na linha " + lex.line + " ja foi declarada antes");
                     }
 
+                    ((Word) aux1).setTipo(tipoAux);
+                    ((Word) aux1).setOffset(offset);
+                    offset++;
                     lex.setWord((Word) aux1);
                 }
 
@@ -796,7 +800,7 @@ public class AnalisadorSintaticoSemantico {
 
                     if (unicidade(lex.getWords(), (Word) token).equals("nao-declarado")) {
                         TabelaDeSimbolos aux = lex.getWords();
-                        aux.incluirTipo((Word) aux1, tipoAux);
+                        aux.incluirTipoOffset((Word) aux1, tipoAux, offset);
                         lex.setWords(aux);
                         tipo1 = "tipo_vazio";
                     } else {
@@ -805,7 +809,9 @@ public class AnalisadorSintaticoSemantico {
                         System.out.println("ERRO SEMANTICO:\n" +
                                 "\tvariavel '" + ((Word) token).getLexeme() + "' na linha " + lex.line + " ja foi declarada antes");
                     }
-
+                    ((Word) aux1).setTipo(tipoAux);
+                    ((Word) aux1).setOffset(offset);
+                    offset++;
                     lex.setWord((Word) aux1);
                 }
                 this.eat(Tag.ID);

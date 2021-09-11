@@ -1,0 +1,42 @@
+START
+PUSHN 1 //a
+PUSHN 1 //b
+PUSHN 1 //c
+PUSHN 1 //result
+
+PUSHS "Digite o valor de a:"
+WRITES
+READ
+ATOI
+STOREL 0
+
+PUSHS "Digite o valor de c:"
+WRITES
+READ
+ATOI
+STOREL 2
+
+PUSHI 10
+STOREL 1
+
+PUSHI 345
+PUSHI 5
+SUB
+PUSHL 1
+ADD
+PUSHL 2
+PUSHL 0
+MUL
+DIV
+STOREL 3
+
+PUSHS "O resultado e: "
+WRITES
+
+PUSHL 3
+WRITER
+
+STOP
+
+
+
