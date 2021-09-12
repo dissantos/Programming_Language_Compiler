@@ -29,7 +29,7 @@ public class TabelaDeSimbolos {
 
     public String obterTipo( String lexeme){
         if( this.get(lexeme) == null){
-            return "tipo_erro";
+            return "tipo_erro-nao-declarado";
         }
         else{
             return this.get(lexeme).getTipo();

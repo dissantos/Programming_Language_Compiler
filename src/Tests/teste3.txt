@@ -5,22 +5,23 @@ int i, qtd;
 int soma, altura;
 float media;
 init
-    soma = 0;
-    write("Quantos dados deseja informar?" );
-    read (qtd);
-    if (qtd>=2){
-        i=0;
-        do{
-            write("Altura: ");
-            read (altura);
-            soma = soma+altura;
-            i = i + 1;
-        }while( i < qtd);
-        media = soma / qtd;
-        write("Media: ");
-        write (media);
-    }
-    else{
-        write("Quantidade inválida.");
-    };
+   soma = 0;
+   write("Quantos dados deseja informar?" );
+   read (qtd);
+   if (qtd>=2){
+       i=0;
+       do{
+           write("Altura: ");
+           read (altura);
+           soma = soma+altura;
+           i = i + 1;
+       }while( i < qtd);
+       media = soma / qtd;
+       write("Media: ");
+       write (media);
+   }
+   else{
+       write("Quantidade inválida.");
+   };
 stop
+

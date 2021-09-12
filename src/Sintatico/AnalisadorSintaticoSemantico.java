@@ -3,12 +3,10 @@ import Exceptions.Erro;
 import Exceptions.LiteralWrongFormatException;
 import Exceptions.NotANumberException;
 import Exceptions.WrongFormatException;
+import GeradorDeCodigo.Gerador;
 import TabelaDeSimbolos.TabelaDeSimbolos;
-import lexicalAnalyzer.Lexer;
+import lexicalAnalyzer.*;
 import lexicalAnalyzer.Number;
-import lexicalAnalyzer.Tag;
-import lexicalAnalyzer.Token;
-import lexicalAnalyzer.Word;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,12 +20,19 @@ public class AnalisadorSintaticoSemantico {
     private ArrayList<Erro> erros;
     public int erros_semanticos = 0;
     private int offset = 0;
+    private Gerador gerador;
+    private int rotuloIf = 0;
+    private int rotuloElse = 0;
+    private int rotuloDo = 0;
+    private int rotuloWhile = 0;
 
-    public AnalisadorSintaticoSemantico(Lexer lex) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
+    public AnalisadorSintaticoSemantico(Lexer lex, String fileMaquina) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         this.lex = lex;
         this.advance();
         this.erros = new ArrayList<Erro>();
+        gerador = new Gerador(fileMaquina);
     }
+
 
     private void eat(int tag) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         if (this.token.TAG == tag){
@@ -51,18 +56,19 @@ public class AnalisadorSintaticoSemantico {
 
     // mulop -> * | / | &&
     private void mulop() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
-        switch (token.TAG){
+        switch (token.TAG) {
             case '*':
                 this.eat('*');
                 break;
             case '/':
                 this.eat('/');
+                gerador.convertFloat();
                 break;
             case Tag.AND:
                 this.eat(Tag.AND);
                 break;
             default:
-                int [] tokens = {'*', '/', Tag.AND};
+                int[] tokens = {'*', '/', Tag.AND};
                 error(tokens);
         }
     }
@@ -112,16 +118,18 @@ public class AnalisadorSintaticoSemantico {
         }
     }
 
-    // factor -> ID |  NUMBER | (expression)
+    // factor -> ID |  NUMBER | LITERAL | (expression)
     private String factor() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ID:
                 lex.setWord((Word) token);
                 tipo = ((Word)token).getTipo();
+                gerador.addID(((Word)token).getOffset());
                 this.eat(Tag.ID);
                 break;
             case Tag.NUMBER:
+                gerador.addConstante((Number) token);
                 tipo = ((Number)token).getTipo();
                 this.eat(Tag.NUMBER);
                 break;
@@ -132,16 +140,20 @@ public class AnalisadorSintaticoSemantico {
                 break;
             case Tag.LITERAL:
                 tipo = "string";
+                gerador.addString(((Literal) token).str);
                 this.eat(Tag.LITERAL);
                 break;
             default:
                 int [] tokens = {Tag.ID, Tag.NUMBER, Tag.LITERAL, '('};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
-    // factor -> -factor|  !factor | factor
+    // factorA -> -factor|  !factor | factor
     private String factora() throws NotANumberException, LiteralWrongFormatException, WrongFormatException, IOException {
         String tipo = "tipo_erro";
         switch (token.TAG){
@@ -163,6 +175,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {'-', '!', Tag.ID, Tag.NUMBER, Tag.LITERAL, '('};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -178,18 +193,23 @@ public class AnalisadorSintaticoSemantico {
                 Token op = token;
                 this.mulop();
                 tipo1 = this.factora();
+                if(tipo1.equals("int") && op.TAG == '/'){
+                    gerador.convertFloat();
+                }
+                gerador.operadores(op.TAG,tipo1);
                 tipo2 = this.z();
                 if (tipo2.equals("nulo")){
                     tipo = tipo1;
                 } else {
                     tipo = verificaTipo(tipo1, tipo2);
                 }
-                if(op.TAG == '/' && (tipo1.equals("int")) && (tipo2.equals("nulo") || tipo2.equals("/int"))){
+                if(op.TAG == '/' && (tipo1.equals("int")) && (tipo2.equals("int") || tipo2.equals("/int") || tipo2.equals("nulo"))){
                     tipo = "/int";
                 }
                 if(tipo.equals("string")){
                     tipo = "tipo_erro-tipo-invalido";
                 }
+
 
                 break;
             case ';':
@@ -208,6 +228,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {'*', '/', Tag.AND, ';',')', '-', '>', Tag.GE, '<', Tag.LE, Tag.NE, Tag.EQ, '+', Tag.OR};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -239,6 +262,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -254,6 +280,7 @@ public class AnalisadorSintaticoSemantico {
                 Token op = token;
                 this.addop();
                 tipo1 = this.term();
+                gerador.operadores(op.TAG,tipo1);
                 tipo2 = this.a();
                 if (tipo2.equals("nulo")){
                     tipo = tipo1;
@@ -280,6 +307,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {';',')', '-', '>', Tag.GE, '<', Tag.LE, Tag.NE, Tag.EQ, '+', Tag.OR};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -312,6 +342,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {'(', '!','-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -333,11 +366,17 @@ public class AnalisadorSintaticoSemantico {
                     tipo = tipo1;
                 } else {
                     tipo = verificaTipo(tipo1, tipo2);
+                    if(!tipo.contains("tipo_erro")){
+                        tipo = "int";
+                    }
                 }
                 break;
             default:
                 int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -352,8 +391,10 @@ public class AnalisadorSintaticoSemantico {
             case Tag.LE:
             case Tag.EQ:
             case Tag.NE:
+                Token op = token;
                 this.relop();
                 tipo = this.simpleexpr();
+                gerador.operadores(op.TAG,tipo);
                 break;
             case ')':
                 tipo = "nulo";
@@ -361,6 +402,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = { '>', Tag.GE, '<', Tag.LE, Tag.NE, Tag.EQ, ')'};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -376,10 +420,14 @@ public class AnalisadorSintaticoSemantico {
             case Tag.NUMBER:
             case Tag.LITERAL:
                 tipo = this.simpleexpr();
+
                 break;
             default:
                 int [] tokens = {'(', '!', '-', Tag.NUMBER, Tag.ID, Tag.LITERAL};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -392,6 +440,7 @@ public class AnalisadorSintaticoSemantico {
                 this.eat(Tag.WRITE);
                 this.eat('(');
                 tipo = this.writable();
+                gerador.escrever(tipo);
                 if (!tipo.contains("tipo_erro")){
                     tipo = "tipo_vazio";
                 }else if(tipo.contains("nao-declarado")){
@@ -411,6 +460,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.WRITE};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -424,6 +476,7 @@ public class AnalisadorSintaticoSemantico {
                 tipo = lex.getWords().obterTipo(((Word)token).getLexeme());
                 if (!tipo.contains("tipo_erro")){
                     tipo = "tipo_vazio";
+                    gerador.lerVariavel((Word) token);
                 }else if(tipo.contains("nao-declarado")){
                     erros_semanticos++;
                     System.out.println("--------------------------------------------");
@@ -440,6 +493,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.READ};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -451,6 +507,11 @@ public class AnalisadorSintaticoSemantico {
                 this.eat(Tag.WHILE);
                 this.eat('(');
                 tipo = this.condition();
+                gerador.endLoopJump(rotuloWhile);
+                rotuloWhile++;
+                rotuloDo--;
+                gerador.loopJump(rotuloDo);
+
                 if(tipo.equals("int")){
                     tipo = "tipo_vazio";
                 } else if(tipo.contains("nao-declarado")){
@@ -464,16 +525,21 @@ public class AnalisadorSintaticoSemantico {
                     System.out.println("ERRO SEMÂNTICO:\n" +
                             "\tcondicao no do...while(condicao) da linha "+ lex.line + " contem identificadores com tipos incompativeis.");
                 }else {
-                    tipo = "tipo_erro";
+                    tipo = "tipo_erro-nao-inteira";
                     System.out.println("--------------------------------------------");
                     System.out.println("ERRO SEMÂNTICO:\n" +
                             "\tcondicao no do...while(condicao) da linha "+ lex.line + " deve ser do tipo inteira.");
                 }
                 this.eat(')');
+                rotuloWhile--;
+                gerador.endLoopLabel(rotuloWhile);
                 break;
             default:
                 int [] tokens = {Tag.WHILE};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -483,6 +549,8 @@ public class AnalisadorSintaticoSemantico {
         String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.DO:
+                gerador.loopLabel(rotuloDo);
+                rotuloDo++;
                 this.eat(Tag.DO);
                 this.eat('{');
                 tipo = this.stmtlist();
@@ -492,6 +560,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.DO};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -512,6 +583,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.ID, '(', '!', '-', Tag.NUMBER,  Tag.LITERAL};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -520,17 +594,28 @@ public class AnalisadorSintaticoSemantico {
         String tipo = "tipo_erro";
         switch (token.TAG){
             case Tag.ELSE:
+                gerador.elseJump(rotuloElse);
+                rotuloElse++;
                 this.eat(Tag.ELSE);
+                rotuloIf--;
+                gerador.ifLabel(rotuloIf);
                 this.eat('{');
                 tipo = this.stmtlist();
                 this.eat('}');
+                rotuloElse--;
+                gerador.elseLabel(rotuloElse);
                 break;
             case ';':
                 tipo = "nulo";
+                gerador.ifLabel(rotuloIf);
+                rotuloIf--;
                 break;
             default:
                 int [] tokens = {Tag.ELSE, ';'};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -545,31 +630,34 @@ public class AnalisadorSintaticoSemantico {
             case Tag.IF:
                 this.eat(Tag.IF);
                 this.eat('(');
+                int line = lex.line;
                 tipo1 = this.condition();
+                gerador.ifJump(rotuloIf);
+                rotuloIf++;
                 this.eat(')');
                 this.eat('{');
                 tipo2 = this.stmtlist();
                 this.eat('}');
                 tipo3 = this.ifstmtPrime();
-                if ((tipo1.equals("int") || tipo1.equals("float")) && tipo2.equals("tipo_vazio") && (tipo3.equals("nulo") || tipo3.equals("tipo_vazio"))){
+                if (tipo1.equals("int") && tipo2.equals("tipo_vazio") && (tipo3.equals("nulo") || tipo3.equals("tipo_vazio"))){
                     tipo = "tipo_vazio";
                 } else if(tipo1.contains("nao-declarado")){
                     tipo = "tipo_erro";
                     erros_semanticos++;
                     System.out.println("--------------------------------------------");
                     System.out.println("ERRO SEMÂNTICO:\n" +
-                            "\tcondicao no if(condicao) da linha "+ lex.line + " contem identificador nao declarado.");
+                            "\tcondicao no if(condicao) da linha "+ line + " contem identificador nao declarado.");
                 }else if(tipo1.contains("tipo-invalido")){
                     tipo = "tipo_erro";
                     erros_semanticos++;
                     System.out.println("--------------------------------------------");
                     System.out.println("ERRO SEMÂNTICO:\n" +
-                            "\tcondicao no if(condicao) da linha "+ lex.line + " contem identificadores com tipos incompativeis.");
+                            "\tcondicao no if(condicao) da linha "+ line + " contem identificadores com tipos incompativeis.");
                 }else {
                     tipo = "tipo_erro";
                     System.out.println("--------------------------------------------");
                     System.out.println("ERRO SEMÂNTICO:\n" +
-                            "\tcondicao no if(condicao) da linha "+ lex.line + " deve ser do tipo inteira.");
+                            "\tcondicao no if(condicao) da linha "+ line + " deve ser do tipo inteira.");
                 }
 
 
@@ -577,6 +665,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.IF};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -598,6 +689,7 @@ public class AnalisadorSintaticoSemantico {
                 tipo = verificaTipo(tipo1, tipo2);
                 if (!tipo.contains("tipo_erro")){
                     tipo = "tipo_vazio";
+                    gerador.atribuicao((Word) aux);
                 } else if(tipo.contains("nao-declarado")){
                     erros_semanticos++;
                     System.out.println("--------------------------------------------");
@@ -616,8 +708,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.ID};
                 error(tokens);
         }
-
-
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -643,6 +736,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -675,6 +771,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID, '}', Tag.STOP};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -702,6 +801,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.WRITE, Tag.READ, Tag.DO, Tag.IF, Tag.ID};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -717,6 +819,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.INIT};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -736,6 +841,7 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.FLOAT, Tag.INT, Tag.STRING};
                 error(tokens);
+                gerador.setNoError(false);
                 return "tipo_erro";
         }
     }
@@ -758,6 +864,7 @@ public class AnalisadorSintaticoSemantico {
                         tipo1 = "tipo_vazio";
                     } else {
                         erros_semanticos++;
+                        gerador.setNoError(false);
                         System.out.println("--------------------------------------------");
                         System.out.println("ERRO SEMANTICO:\n" +
                                 "\tvariavel '" + ((Word) token).getLexeme() + "' na linha " + lex.line + " ja foi declarada antes");
@@ -768,7 +875,7 @@ public class AnalisadorSintaticoSemantico {
                     offset++;
                     lex.setWord((Word) aux1);
                 }
-
+                gerador.declararVariavel();
                 this.eat(Tag.ID);
 
                 tipo2 = this.identlistaux(tipoAux);
@@ -784,6 +891,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {',',';'};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -804,6 +914,7 @@ public class AnalisadorSintaticoSemantico {
                         lex.setWords(aux);
                         tipo1 = "tipo_vazio";
                     } else {
+                        gerador.setNoError(false);
                         erros_semanticos++;
                         System.out.println("--------------------------------------------");
                         System.out.println("ERRO SEMANTICO:\n" +
@@ -814,6 +925,7 @@ public class AnalisadorSintaticoSemantico {
                     offset++;
                     lex.setWord((Word) aux1);
                 }
+                gerador.declararVariavel();
                 this.eat(Tag.ID);
 
                 tipo2 = this.identlistaux(tipoAux);
@@ -826,6 +938,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.ID};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -844,6 +959,9 @@ public class AnalisadorSintaticoSemantico {
             default:
                 int [] tokens = {Tag.FLOAT, Tag.INT, Tag.STRING};
                 error(tokens);
+        }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
         }
         return tipo;
     }
@@ -873,6 +991,9 @@ public class AnalisadorSintaticoSemantico {
                 int [] tokens = {Tag.FLOAT, Tag.INT, Tag.STRING, Tag.INIT};
                 error(tokens);
         }
+        if ( tipo.contains("tipo_erro")){
+            gerador.setNoError(false);
+        }
         return tipo;
     }
 
@@ -893,6 +1014,7 @@ public class AnalisadorSintaticoSemantico {
                 if(tipo1 != null && tipo2 != null) {
                     tipo = verificaTipo(tipo1, tipo2);
                 }
+                gerador.finaliza();
                 break;
             default:
                 int [] tokens = {Tag.CLASS};

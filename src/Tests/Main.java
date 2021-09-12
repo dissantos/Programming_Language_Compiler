@@ -13,14 +13,20 @@ import java.util.ArrayList;
 public class Main {
     public static void main(String[] args) throws IOException, NotANumberException, WrongFormatException, LiteralWrongFormatException {
         String file = "";
+        String fileMachine = "./src/Tests/out.vm";
 
 
         // Recebe o path do arquivo como argumento
-        for (String arg : args) {
-            file = arg;
+        if(args.length != 2){
+            System.out.println("Falta argumentos:");
+            System.out.println("java -jar <path para o compiler>.jar <path para o codigo> <path to vm file generate>.vm");
+            System.exit(0);
+        } else {
+            file = args[0];
+            fileMachine = args[1];
         }
         Lexer lex = new Lexer(file);
-        AnalisadorSintaticoSemantico compilador = new AnalisadorSintaticoSemantico(lex);
+        AnalisadorSintaticoSemantico compilador = new AnalisadorSintaticoSemantico(lex,fileMachine);
 
         compilador.program();
 
